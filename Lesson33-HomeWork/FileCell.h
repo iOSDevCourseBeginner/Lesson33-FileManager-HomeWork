@@ -14,6 +14,8 @@
 @property (weak, nonatomic) IBOutlet UILabel *lableSize;
 @property (weak, nonatomic) IBOutlet UILabel *labelDateModified;
 
+@property (weak, nonatomic) IBOutlet UILabel *labelFolderTitle;
+@property (weak, nonatomic) IBOutlet UILabel *lableFolderSize;
 
 
 @end

@@ -43,6 +43,16 @@
         NSLog(@"%@", [error localizedDescription]);
     }
     
+    NSMutableArray* tempArray = [NSMutableArray new];
+    
+    for (NSString* name in self.content) {
+        if (![name hasPrefix:@"."]) {
+            [tempArray addObject:name];
+        }
+    }
+    
+    self.content = tempArray;
+    
     [self.tableView reloadData];
     
     self.navigationItem.title = [self.path lastPathComponent];
@@ -99,13 +109,15 @@
     
     UIAlertView *message = [[UIAlertView alloc] initWithTitle:@"Folder's name"
                                                       message:@"Enter folder's name"
-                                                     delegate:self
+                                                     delegate:nil
                                             cancelButtonTitle:@"Cancel"
                                             otherButtonTitles:@"OK", nil];
     
     [message setAlertViewStyle:UIAlertViewStylePlainTextInput];
     
     [message show];
+    
+    
 }
 
 -(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
@@ -122,7 +134,7 @@
     if (fileExist) {
         UIAlertView *message = [[UIAlertView alloc] initWithTitle:@"Folder's name"
                                                           message:@"folder with this name already exist. Please enter other name."
-                                                         delegate:self
+                                                         delegate:nil
                                                 cancelButtonTitle:@"Cancel"
                                                 otherButtonTitles:@"OK", nil];
         
@@ -159,20 +171,54 @@
 
 
 
-- (NSString*) sizeStringFromValue:(long long unsigned) size {
+- (NSString*) sizeFileFromValue:(NSString*) path {
+    
+    NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
+    
+    unsigned long long fileSize = [attributes fileSize];
     
     static NSString* units[] = {@"B", @"KB", @"MB", @"GB", @"TB"};
     static int count = 5;
     
     int index = 0;
     
-    while (size > 1024 && count > index) {
-        size /= 1024;
+    while (fileSize > 1024 && count > index) {
+        fileSize /= 1024;
         index++;
     }
     
-    return [NSString stringWithFormat:@"%llu %@", size, units[index]];
+    return [NSString stringWithFormat:@"%llu %@", fileSize, units[index]];
 }
+
+
+- (NSString*)sizeFolderFromValue:(NSString *)folderPath {
+    
+    NSArray *filesArray = [[NSFileManager defaultManager] subpathsOfDirectoryAtPath:folderPath error:nil];
+    NSEnumerator *filesEnumerator = [filesArray objectEnumerator];
+    NSString *fileName;
+    unsigned long long int fileSize = 0;
+    
+    while (fileName = [filesEnumerator nextObject]) {
+        
+        NSDictionary *fileDictionary = [[NSFileManager defaultManager] fileAttributesAtPath:[folderPath stringByAppendingPathComponent:fileName] traverseLink:YES];
+        fileSize += [fileDictionary fileSize];
+    }
+    
+    
+    static NSString* units[] = {@"B", @"KB", @"MB", @"GB", @"TB"};
+    static int count = 5;
+    
+    int index = 0;
+    
+    while (fileSize > 1024 && count > index) {
+        fileSize /= 1024;
+        index++;
+    }
+
+    return [NSString stringWithFormat:@"%llu %@", fileSize, units[index]];
+}
+ 
+
 
 #pragma mark - UITableViewDataSource
 
@@ -192,9 +238,12 @@
     
     if ([self isDirectoryAtIndexPath:indexPath]) {
         
-        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:identifierFolder];
+        NSString* path = [self.path stringByAppendingPathComponent:name];
         
-        cell.textLabel.text = name;
+        FileCell* cell = [tableView dequeueReusableCellWithIdentifier:identifierFolder];
+        
+        cell.labelFolderTitle.text = name;
+        cell.lableFolderSize.text = [self sizeFolderFromValue:path];
         
         return cell;
         
@@ -207,7 +256,7 @@
         FileCell* cell = [tableView dequeueReusableCellWithIdentifier:identifierFile];
         
         cell.labelTitle.text = name;
-        cell.lableSize.text = [self sizeStringFromValue:[attributes fileSize]];
+        cell.lableSize.text = [self sizeFileFromValue:path];
         
         static NSDateFormatter* dateFormatter = nil;
         
@@ -259,7 +308,7 @@
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     
     if ([self isDirectoryAtIndexPath:indexPath]) {
-        return 44.f;
+        return 60.f;
     
     } else {
         return 80.f;
@@ -285,16 +334,5 @@
         [self performSegueWithIdentifier:@"segueNBTableViewController" sender:nil];*/
     }
 }
-
-/*- (void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    
-    NSLog(@"prepareForSegue");
-    
-    NBTableViewController* vc = segue.destinationViewController;
-    vc.path = self.selectedPath;
-    
-}*/
-
-
 
 @end
